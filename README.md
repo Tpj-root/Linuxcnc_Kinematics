@@ -4,6 +4,15 @@ SA-CNC-CLUB
 Rudy du Preez
 
 
+**FindTheSite**
+
+```
+https://sa-cnc.com/?page_id=5375
+https://web.archive.org/web/20240223111327/https://sa-cnc.com/?page_id=5375
+```
+
+
+
 **halcompile - Build, compile and install LinuxCNC HAL components**
 
 
@@ -90,7 +99,7 @@ https://github.com/travis-farmer/lcnc_mqtt_status_lights/blob/main/lcnc_mqtt_sta
 
 
 
-
+https://github.com/cnc-club
 https://github.com/cnc-club/linuxcnc-engraving-comp
 https://www.hase.net/CNC/CNC/PCB_milling.html
 
@@ -135,13 +144,22 @@ https://github.com/hase-berlin/pcbGcodeZprobing
 
 
 VID
-
+```
 https://www.youtube.com/watch?v=zpx6dOgNJHA&ab_channel=GMSystem2001
+https://www.youtube.com/watch?v=60jX20xwoZQ
+https://www.youtube.com/watch?v=YwJLJxoKuM8&ab_channel=MakersEase
+https://www.youtube.com/watch?v=rZoLP0v50rw
+https://www.youtube.com/watch?v=qiCD0MxI1_I&ab_channel=FerySetyawan
+```
 
 
 
 
+https://link.springer.com/article/10.1007/s13369-022-06794-6
 
+
+DESIGn
+https://www.cadcrowd.com/3d-models/6-dof-robot
 
 
 
@@ -157,3 +175,43 @@ SIM
 https://forum.linuxcnc.org/10-advanced-configuration/38457-mitsubishi-rv-6sdl-switchkins-config-with-simulation#158467
 
 
+
+
+
+
+
+
+STUDY_KIN
+
+```
+http://alvarestech.com/temp/RoboAseaIRB6S2-Fiat/CinematicaExemplosManuaisConfigurador-DH-EMC/
+https://newscrewdriver.com/2022/12/28/successful-linuxcnc-stepper-motor-test/
+```
+
+
+
+
+
+
+L_CNC
+https://forum.linuxcnc.org/38-general-linuxcnc-questions/30764-how-do-i-setup-a-5-axis-mill
+
+
+
+
+```
+https://cnc-sa.co.za/cnc-machines-south-africa
+https://iessa.co.za/cnc-repairs
+https://www.cnc.co.za/
+https://www.cnc-academy.com/
+https://cnc-club.ru/forum/index.php
+```
+
+
+
+Wiki
+
+```
+http://wiki.linuxcnc.org/cgi-bin/wiki.pl?ModIO
+
+```
