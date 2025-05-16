@@ -217,3 +217,22 @@ https://www.youtube.com/watch?v=8CGpu9y4_sE&ab_channel=LeslieGlen
 
 https://www.youtube.com/watch?v=9R5Nz1eYddM&ab_channel=ProfessorLeonard
 
+
+
+Here are the main trigonometric functions and their names:
+
+| Full Name | Abbreviation |
+| --------- | ------------ |
+| Sine      | sin          |
+| Cosine    | cos          |
+| Tangent   | tan          |
+| Cosecant  | csc          |
+| Secant    | sec          |
+| Cotangent | cot          |
+
+So, total: **6 main functions**, each with a full name and a short form.
+
+
+
+
+
