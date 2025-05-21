@@ -327,6 +327,12 @@ Usage: rlCollisionTest SCENEFILE KINEMATICSFILE JOINT1 ... JOINTn (in degrees)
 
 
 
+
+./rlCollisionTest /home/cnc/Desktop/BUILD3/rl/tests/rlCollisionTest/twotori.xml /home/cnc/Desktop/BUILD3/rl/tests/rlCollisionTest/twotori.wrl 0 0 0 0 0 0
+
+
+
+
 ./rlCompositeFunctionTest
 rlCompositeFunctionTest: /home/cnc/Desktop/BUILD3/rl/src/rl/math/Polynomial.h:590: T rl::math::Polynomial<T>::operator()(const rl::math::Real&, const std::size_t&) const [with T = double; rl::math::Real = double; std::size_t = long unsigned int]: Assertion `x < this->upper() + this->functionBoundary' failed.
 Aborted
