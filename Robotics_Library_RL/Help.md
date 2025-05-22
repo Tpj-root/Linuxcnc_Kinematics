@@ -24,9 +24,6 @@ https://github.com/dtecta/solid3
 
 
 
-
-
-
 ### Qt5 development packages are installed
 
 
@@ -229,6 +226,118 @@ faking GPU support using the CPU via software rendering (llvmpipe). It lets apps
 LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330
 
 ```
+
+
+```
+/lib64/ld-linux-x86-64.so.2
+libbrotlicommon.so.1
+libbrotlidec.so.1
+libbsd.so.0
+libBulletCollision-float64.so.3.24
+libccd.so.2
+libCoin.so.80c
+libcom_err.so.2
+libc.so.6
+libdc1394.so.25
+
+libdouble-conversion.so.3
+libexpat.so.1
+libfcl.so.0.7
+libfreetype.so.6
+libgcc_s.so.1
+libGLdispatch.so.0
+libglib-2.0.so.0
+libGL.so.1
+libGLX.so.0
+libgraphite2.so.3
+
+libgssapi_krb5.so.2
+libharfbuzz.so.0
+libicudata.so.72
+libicui18n.so.72
+libicuuc.so.72
+libk5crypto.so.3
+libkeyutils.so.1
+libkrb5.so.3
+libkrb5support.so.0
+libLinearMath-float64.so.3.24
+
+liblzma.so.5
+libmd4c.so.0
+libmd.so.0
+libm.so.6
+libnlopt.so.0
+liboctomap.so.1.9
+liboctomath.so.1.9
+libode.so.8
+libOpenGL.so.0
+libpcre2-16.so.0
+
+libpcre2-8.so.0
+libpng16.so.16
+libpthread.so.0
+libQt5Core.so.5
+libQt5Gui.so.5
+libQt5Network.so.5
+libQt5OpenGL.so.5
+libQt5PrintSupport.so.5
+libQt5Widgets.so.5
+libraw1394.so.11
+
+libresolv.so.2
+libsolid3.so.3.5.8
+libSoQt.so.520
+libstdc++.so.6
+libudev.so.1
+libusb-1.0.so.0
+libX11.so.6
+libXau.so.6
+libxcb.so.1
+libXdmcp.so.6
+
+libXext.so.6
+libXi.so.6
+libxml2.so.2
+libxslt.so.1
+libz.so.1
+libzstd.so.1
+linux-vdso.so.1
+```
+
+
+
+
+The file /lib64/ld-linux-x86-64.so.2 is the dynamic linker/loader for 64-bit ELF binaries on Linux.
+
+
+```
+
+sudo apt install libc6
+
+sudo apt install \
+  libbrotli1 \
+  libbsd0 \
+  libbullet-dev \
+  libccd2 \
+  libcoin80c \
+  libcom-err2 \
+  libc6 \
+  libdc1394-25
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
