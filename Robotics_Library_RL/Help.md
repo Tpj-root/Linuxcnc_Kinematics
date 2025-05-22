@@ -372,7 +372,25 @@ fixbug ./wrlview
 #### SCENEFILE MODELFILE
              
 rlCoachMdl
-rlSimulator
+
+fixbug ./rlCoachMdl /home/cnc/Desktop/BUILD3/rl/examples/rlsg/unimation-puma560/unimation-puma560.xml /home/cnc/Desktop/BUILD3/rl/examples/rlmdl/unimation-puma560.xml
+
+
+
+fixbug ./rlSimulator /home/cnc/Desktop/BUILD3/rl/examples/rlsg/unimation-puma560/unimation-puma560.xml /home/cnc/Desktop/BUILD3/rl/examples/rlmdl/unimation-puma560.xml
+
+
+fixbug ./rlSimulator /home/cnc/Desktop/BUILD3/rl/examples/rlsg/planar3.xml /home/cnc/Desktop/BUILD3/rl/examples/rlmdl/planar3.xml
+fixbug ./rlSimulator /home/cnc/Desktop/BUILD3/rl/examples/rlsg/planar2.xml /home/cnc/Desktop/BUILD3/rl/examples/rlmdl/planar2.xml
+
+
+
+
+not work
+fixbug ./rlSimulator /home/cnc/Desktop/BUILD3/rl/examples/rlsg/box-6d-300505_maze.xml /home/cnc/Desktop/BUILD3/rl/examples/rlmdl/box-6d-300505.sixDof.xml
+
+
+
 
 
 
