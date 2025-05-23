@@ -324,7 +324,57 @@ sudo apt install \
   libc6 \
   libdc1394-25
 
+sudo apt install libdouble-conversion3 \
+                 libexpat1 \
+                 libfcl0.7 \
+                 libfreetype6 \
+                 libgcc-s1 \
+                 libgl1 \
+                 libglib2.0-0 \
+                 libglx0 \
+                 libgraphite2-3
 
+sudo apt install libgssapi-krb5-2 \
+                 libharfbuzz0b \
+                 libicu72 \
+                 libk5crypto3 \
+                 libkeyutils1 \
+                 libkrb5-3 \
+                 libkrb5support0
+
+sudo apt install liblzma5 \
+                 libmd4c0 \
+                 libmd0 \
+                 libc6 \
+                 libnlopt0 \
+                 liboctomap1.9 \
+                 libode8 \
+                 libopengl0 \
+                 libpcre2-16-0
+
+sudo apt install libpcre2-8-0 \
+                 libpng16-16 \
+                 libc6 \
+                 qtbase5-dev \
+                 libraw1394-11
+
+sudo apt install libc6 \
+                 libkf5solid5 \
+                 libsoqt520 \
+                 libstdc++6 \
+                 libudev1 \
+                 libusb-1.0-0 \
+                 libx11-6 \
+                 libxau6 \
+                 libxcb1 \
+                 libxdmcp6
+
+sudo apt install libxext6 libxi6 libxml2 libxslt1.1 zlib1g libzstd1
+
+
+
+https://github.com/OctoMap/octomap
+sudo apt install liboctomath1.9
 ```
 
 
