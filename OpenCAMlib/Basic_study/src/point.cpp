@@ -221,6 +221,18 @@ bool Point::isRight(const Point &p1, const Point &p2) const
         return false;
 }
 
+// bool Point::isRight(const Point &p1, const Point &p2) const {
+//     if (std::abs(p1.x - p2.x) < 1e-9 && std::abs(p1.y - p2.y) < 1e-9)
+//         return false;
+//     double dx = p2.x - p1.x;
+//     double dy = p2.y - p1.y;
+//     double tx = x - p1.x;
+//     double ty = y - p1.y;
+//     double cross = dx * ty - dy * tx;
+//     return (cross < -1e-12);
+// }
+
+
 bool Point::isInside(const Triangle &t) const {
     Point p = *this;
     Point a = t.p[0];

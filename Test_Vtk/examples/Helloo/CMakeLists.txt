@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
-project(CylinderExample)
+project(VTKExamples)
 
 find_package(VTK COMPONENTS 
   CommonColor
@@ -12,19 +12,24 @@ find_package(VTK COMPONENTS
   RenderingFreeType
   RenderingGL2PSOpenGL2
   RenderingOpenGL2
+  RenderingAnnotation
+  InteractionWidgets
+
 )
 
 if (NOT VTK_FOUND)
-  message(FATAL_ERROR "CylinderExample: Unable to find the VTK build folder.")
+  message(FATAL_ERROR "Unable to find the VTK build folder.")
 endif()
 
-# Prevent a "command line is too long" failure in Windows.
+# Prevent "command line too long" on Windows
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE "ON" CACHE BOOL "Force Ninja to use response files.")
-add_executable(CylinderExample MACOSX_BUNDLE CylinderExample.cxx )
-  target_link_libraries(CylinderExample PRIVATE ${VTK_LIBRARIES}
-)
-# vtk_module_autoinit is needed
-vtk_module_autoinit(
-  TARGETS CylinderExample
-  MODULES ${VTK_LIBRARIES}
-)
+
+# CylinderExample
+add_executable(CylinderExample MACOSX_BUNDLE CylinderExample.cxx)
+target_link_libraries(CylinderExample PRIVATE ${VTK_LIBRARIES})
+vtk_module_autoinit(TARGETS CylinderExample MODULES ${VTK_LIBRARIES})
+
+# PointViewer
+add_executable(PointViewer MACOSX_BUNDLE PointViewer.cxx)
+target_link_libraries(PointViewer PRIVATE ${VTK_LIBRARIES})
+vtk_module_autoinit(TARGETS PointViewer MODULES ${VTK_LIBRARIES})
