@@ -5,7 +5,10 @@ project(VTKExamples)
 find_package(VTK COMPONENTS 
   CommonColor
   CommonCore
+  CommonDataModel
   FiltersSources
+  IOInfovis
+  InfovisLayout
   InteractionStyle
   RenderingContextOpenGL2
   RenderingCore
@@ -14,6 +17,8 @@ find_package(VTK COMPONENTS
   RenderingOpenGL2
   RenderingAnnotation
   InteractionWidgets
+  ViewsCore
+  ViewsInfovis
 
 )
 
@@ -33,3 +38,8 @@ vtk_module_autoinit(TARGETS CylinderExample MODULES ${VTK_LIBRARIES})
 add_executable(PointViewer MACOSX_BUNDLE PointViewer.cxx)
 target_link_libraries(PointViewer PRIVATE ${VTK_LIBRARIES})
 vtk_module_autoinit(TARGETS PointViewer MODULES ${VTK_LIBRARIES})
+
+# XGMLReader.cxx
+add_executable(XGMLReader MACOSX_BUNDLE XGMLReader.cxx)
+target_link_libraries(XGMLReader PRIVATE ${VTK_LIBRARIES})
+vtk_module_autoinit(TARGETS XGMLReader MODULES ${VTK_LIBRARIES})
