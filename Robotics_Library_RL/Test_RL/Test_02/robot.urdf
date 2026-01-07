@@ -1,0 +1,13 @@
+<robot name="testarm">
+  <link name="base"/>
+  <joint name="joint1" type="revolute">
+    <parent link="base"/>
+    <child link="link1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="link1"/>
+</robot>
+

@@ -4,15 +4,17 @@ project(myMdlDemo)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set your local rl paths
-set(RL_INCLUDE_DIR "/home/cnc/Desktop/BUILD3/rl/src")
-set(RL_LIBRARY_DIR "/home/cnc/Desktop/BUILD3/rl/build/lib")
+# Paths
+set(RL_SRC_DIR "/home/where/Desktop/BUILD_FILES/rl/src/")
+set(RL_BUILD_DIR "/home/where/Desktop/BUILD_FILES/rl/build/")
+set(RL_LIBRARY_DIR "${RL_BUILD_DIR}/lib")
 
 include_directories(
-    ${RL_INCLUDE_DIR}
+    /home/where/Desktop/BUILD_FILES/rl/src/
+    /home/where/Desktop/BUILD_FILES/rl/build/include   # <-- add this
     /usr/include/eigen3
-    /home/cnc/Desktop/BUILD3/rl/build/src/
 )
+
 
 link_directories(${RL_LIBRARY_DIR})
 
@@ -24,9 +26,7 @@ target_link_libraries(myMdlDemo
     rlsg
     rlhal
     rlplan
-    xml2     # <-- Add this
-    xslt     # <-- And this
+    xml2
+    xslt
 )
-
-
 
