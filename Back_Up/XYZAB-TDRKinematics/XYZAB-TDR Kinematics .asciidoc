@@ -1,0 +1,1256 @@
+image:Images/xyzab_machine_alpha.png[Titlepic]
+
+== Introduction
+
+This paper describes how to derive the kinematic model for a 5-axis
+machine tool in an XYZAB configuration with dual table rotation. In this
+example the B axis is the primary and the A axis is the secondary rotary
+axis. The primary being independent of the secondary axis. The model
+presented here will be named `XYZAB-TDR'.
+
+The method used here will be a step by step approach. Starting with a
+working kinematic model for a single rotary axis all the required
+elements will be added to build a complete kinematic model for the
+machine.
+
+The final model includes tool-length compensation, compensation for
+mechanical offsets between the two rotational axis A and B and
+compensation for setups where the machine reference point is not located
+in the rotation-point of the rotary assembly.
+
+In this document only basic mathematical functions are used so the
+kinematic models derived can be used directly in the `userkins.comp'
+template file provided with the LinuxCNC installation. All calculations
+can be done whithout the use of any computer algebra systems, however
+the use of computer assistance like `sage' will make the process of
+matrix multiplication much less error prone.
+
+Note that there are other and potentially more computationally efficient
+ways to build custom kinematics using built in libraries like
+`posemath'. Posemath provides many functions for efficient matrix
+manipulation and also offers functions for the use of quaternions.
+However the use of such a library would require a more indepth
+understanding of the mathematical theory that is beyond the scope of
+this presentation. Furthermore importing a library like `posemath' into
+the `userkins.comp' template would require substantially more
+programming skills than using the method applied in this paper.
+
+
++*In[1]:*+
+[source, ipython3]
+----
+from IPython.display import display, Image
+
+# only used to display equations out of code blocks
+from IPython.display import Math, display
+
+# joint position vector P 
+var('Px','Py','Pz')
+P_=matrix([[Px],
+           [Py],
+           [Pz],
+           [1]])
+
+# cartesian position vector Q
+var('Qx','Qy','Qz')
+Q_=matrix([[Qx],
+           [Qy],
+           [Qz],
+           [1]])
+----
+
+A custom kinematic model in LinuxCNC is used to calculate cartesian
+coordinates from given machine joint positions (forward kinematics) and
+also to calculate the required machine joint positions to reach a given
+coordinate position (inverse kinematics). In the following description
+we will use vectors as mathematical representations of the two
+positions:
+
+Note that the fourth row is added to be able to multiply the vectors
+with a 4x4 transformation matrix.
+
+== TCP Kinematic model
+
+For the tool to follow a point on the work piece we need a model that
+calculates where a given position on the work piece moves to when the
+rotary joints are rotated. In our example configuration the work piece
+will be mounted on the A rotary table and it is therefore here where we
+start to build our forward kinematic model. Note that in matrix
+multiplication the order is important that is latexmath:[$A\cdot B$] is
+generally not equal to latexmath:[$B \cdot A$].
+
+== Rotary A
+
+=== Forward transformation
+
+We start with the basic rotation around the A axis. In this case our
+forward transformation matrix latexmath:[$^QA_P$] is equal to a rotation
+around the x-axis:
+
+
++*In[2]:*+
+[source, ipython3]
+----
+# define rotation matrix for axis A (ie rotation around x-axis)
+var('Ca','Sa')
+Ra=matrix([[ 1,  0,   0, 0],
+           [ 0, Ca, -Sa, 0],
+           [ 0, Sa,  Ca, 0],
+           [ 0,  0,   0, 1]])
+display(Math(rf'R_a =~'+latex(Ra)))
+----
+
+
++*Out[2]:*+
+----<IPython.core.display.Math object>----
+
+with latexmath:[$~~Sa = sin(\theta_a),~~~ Ca = cos(\theta_a)$] and
+latexmath:[$\theta_a$] being the angle of rotation of joint A
+
+To derive the coordinate position latexmath:[$Q(Qx,Qy,Qz)$] we now need
+to multiply the joint position vector latexmath:[$P(Px,Py,Pz)$] with our
+forward transformation matrix latexmath:[$^QA_P$]. Note that the input
+values latexmath:[$P$] to our model need to be on the right hand side of
+the matrix multiplication.
+
+[latexmath]
+++++
+\[ Q=~^QA_P \cdot P \]
+++++
+
+
++*In[3]:*+
+[source, ipython3]
+----
+# calculate forward kinematic
+Q_out=Ra*P_
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(Ra)+rf'\cdot'+latex(P_)+rf'=~'+latex(Q_out)))
+----
+
+
++*Out[3]:*+
+----<IPython.core.display.Math object>----
+
+'''''
+
+This shows the section of the TCP forward kinematics calculation in the
+file `xyzab_tdr_kins.comp'. Note that P(px,py,pz) is equal to the joint
+position (j[0],j[1],j[2],) while latexmath:[$Q(Qx,Qy,Qz)$] is output to
+the coordinate position (pos->tran.x, pos->tran.y, pos->tran.z). The
+values `ca', `sa' are calculated and stored in the respective variables
+earlier in the component file.
+
+....
+  case 1: // ========================= TCP kinematics FORWARD
+        px          = j[0];
+        py          = j[1];
+        pz          = j[2];
+
+        pos->tran.x = px;
+        pos->tran.y = ca*py - sa*pz;
+        pos->tran.z = ca*pz + sa*py;
+
+        pos->a      = j[3];
+        pos->b      = j[4];
+
+        break;
+....
+
+== Inverse transformation
+
+To calculate the joint position latexmath:[$P$] from given coordinate
+positions latexmath:[$Q$] we need to `unrotate' joint A. Mathematically
+this means we need to transpose the rotation part in our transformation
+matrix.
+
+To derive the joint position latexmath:[$P$] we then multiply the
+coordinate position vector latexmath:[$Q$] from the right:
+
+
++*In[4]:*+
+[source, ipython3]
+----
+# calculate inverse kinematic
+P_out=Ra.transpose()*Q_
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(Ra.transpose())+rf'\cdot'+latex(Q_)+rf'=~'+latex(P_out)))
+----
+
+
++*Out[4]:*+
+----<IPython.core.display.Math object>----
+
+'''''
+
+This shows the section of the TCP inverse kinematics calculation in the
+file `xyzab_tdr_kins.comp'. Note that latexmath:[$Q(qx,qy,qz)$] is equal
+to the coordinate position (pos->tran.x, pos->tran.y, pos->tran.z) while
+latexmath:[$P(Px,Py,Pz)$] is output to the joint position
+(j[0],j[1],j[2]). The values `ca', `sa' are calculated and stored in the
+respective variables earlier in the component file.
+
+....
+    case 1: // ========================= TCP kinematics INVERSE 
+        qx   = pos->tran.x;
+        qy   = pos->tran.y;
+        qz   = pos->tran.z;
+
+        j[0] =   qx;
+
+        j[1] =   ca*qy + qz*sa;
+
+        j[2] =   ca*qz - qy*sa;
+
+        j[3] = pos->a;
+        j[4] = pos->b;
+        break;
+....
+
+Testing in LinuxCNC shows a working TCP kinematic for rotations around A
+
+
++*In[5]:*+
+[source, ipython3]
+----
+
+display(Image(filename="Images/Ra_gui.png",
+              height=300, width=300))
+----
+
+
++*Out[5]:*+
+----
+![png](output_17_0.png)
+----
+
+== Rotary A and B
+
+=== Forward transformation
+
+To add the B rotation we expand latexmath:[$~^QA_P$] by multiplying the
+rotation matrix latexmath:[$R_b$] from the right:
+
+Note how the transformation matrix latexmath:[$~^QA_P$] is constructed
+from left to right. The first operation is on the left and the last
+operation is on the right as we work our way from the work side to the
+spindle side of the kinematic chain.
+
+
++*In[6]:*+
+[source, ipython3]
+----
+var('Cb','Sb')
+Rb=matrix([[Cb,  0,  Sb,  0],
+           [ 0,  1,   0,  0],
+           [-Sb,  0,  Cb, 0],
+           [ 0,  0,   0, 1]])
+display(Math(rf'R_b =~'+latex(Rb)))
+----
+
+
++*Out[6]:*+
+----<IPython.core.display.Math object>----
+
+with latexmath:[$~~Sb = sin(\theta_b),~~~ Cb = cos(\theta_b)$] and
+latexmath:[$\theta_b$] being the angle of rotation of joint B
+
+
++*In[7]:*+
+[source, ipython3]
+----
+# calculate the forward transformation matrix
+qAp=Ra*Rb
+display(Math(rf'^QA_P =~~'+latex(Ra)+rf'\cdot'+latex(Rb)))
+display(Math(rf'^QA_P =~~'+latex(qAp)))
+----
+
+
++*Out[7]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+Note how the input data (this here being the forward kinematics the
+input is the joint position latexmath:[$P$] is multiplied with the
+transformation matrix from the right to get the result (ie the
+coordinate position)
+
+
++*In[8]:*+
+[source, ipython3]
+----
+# calculate the forward kinematic
+display(Math(rf'Q =~'+latex(Q_)+rf'=~^QA_P \cdot P'))
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(qAp)+rf'\cdot'+latex(P_)))
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(Q_out)))
+----
+
+
++*Out[8]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+....
+    case 1: // ========================= TCP kinematics FORWARD 
+        px          = j[0];
+        py          = j[1];
+        pz          = j[2];
+
+        pos->tran.x = cb*px + pz*sb;
+
+        pos->tran.y = -cb*pz*sa + px*sa*sb + ca*py;
+
+        pos->tran.z = ca*cb*pz -ca*px*sb + sa*py;
+
+        pos->a      = j[3];
+        pos->b      = j[4];
+
+        break;
+....
+
+== Inverse transformation
+
+To calculate the joint position latexmath:[$P$] from given coordinate
+positions latexmath:[$Q$] we need to first unrotate joint B and then
+unrotate joint A. Mathematically we can write this:
+
+Note how the inverse transformation matrix latexmath:[$~^PA_Q$] is also
+constructed from left to right. The first operation is on the left and
+the last operation is on the right but here we start from the spindle
+side backwards to the work side.
+
+To derive the joint position latexmath:[$P$] we then multiply the
+coordinate position vector latexmath:[$Q$] from the right:
+
+
++*In[9]:*+
+[source, ipython3]
+----
+# calculate the inverse transformation matrix
+pAq=Rb.transpose()*Ra.transpose()
+display(Math(rf'^PA_Q =~~'+latex(Rb.transpose())+rf'\cdot'+latex(Ra.transpose())))
+display(Math(rf'^PA_Q =~~'+latex(pAq)))
+----
+
+
++*Out[9]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+Note again how the input data (this here being the inverse kinematics
+the input is the coordinate position latexmath:[$Q$] ) is multiplied
+with the transformation from the right.
+
+
++*In[10]:*+
+[source, ipython3]
+----
+# calculate the inverse kinematic
+P_out=pAq*Q_
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(pAq)+rf'\cdot'+latex(Q_)))
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(P_out)))
+----
+
+
++*Out[10]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+....
+    case 1: // ========================= TCP kinematics INVERSE 
+        qx   = pos->tran.x;
+        qy   = pos->tran.y;
+        qz   = pos->tran.z;
+
+        j[0] =   -ca*qz*sb + qy*sa*sb + cb*qx;
+
+        j[1] =   ca*qy+ qz*sa;
+
+        j[2] =   ca*cb*qz - cb*qy*sa + qx*sb;
+
+        j[3] = pos->a;
+        j[4] = pos->b;
+        break;
+....
+
+Testing in LinuxCNC now shows a working TCP kinematic for rotations of
+both joints A and B
+
+
++*In[11]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/ab_gui.png",
+              height=300, width=300))
+----
+
+
++*Out[11]:*+
+----
+![png](output_33_0.png)
+----
+
+== Offsets in the rotary assembly
+
+The rotational axes of a rotary assembly like the A/B type discussed
+here will always have an intended or unintented offset from one
+rotational axis to the other. In our case this is an offset in the x
+direction (red indicator) and in the z direction (blue indicator). In
+the image the yellow rod indicates the rotational axis of B and the
+yellow cross at it’s end indicates where the axis A and axis B intersect
+when both x- and z-offset are zero this is also called the `rotation
+point' of the rotary assembly. We define the values for the offsets in
+the example image as _x-offset = -20_ and _z-offset = -10_. In our
+kinematic model this represents the situation where, starting from the
+rotation point of the rotary assembly, we need to travel 10 in the
+negative z-direction and 20 in the negative x-direction to reach the
+center of the face of the rotary A.
+
+Note that the direction of travel when defining these offsets is
+arbitrary so in our case the offset situation in the image could also be
+defined as +20 in x and +10 in z. However once the definition is made we
+must keep it through the entire process of building the kinematic model.
+
+
++*In[12]:*+
+[source, ipython3]
+----
+
+display(Image(filename="Images/offsets_xz_1.png", 
+              height=300, width=300))
+----
+
+
++*Out[12]:*+
+----
+![png](output_35_0.png)
+----
+
+== Forward transformation
+
+Because these offsets are located in between the two rotations they also
+need to be built in between the rotations in our transformation matrix.
+It may be helpful to view the offsets as the components of a vector. In
+our case the vector components would be (-20,0,-10) so the vector would
+point from the rotation point to the face of the rotary table A. To
+build the transformation matrix that describes these offsets we need to
+keep in mind if we are moving with or against the offset vector as we
+travel from the work to the spindle. In our case we defined the offset
+vector to point towards the rotary A so we are travelling in the
+opposite direction and thus the vector components need to be entered in
+the negative.
+
+
++*In[13]:*+
+[source, ipython3]
+----
+# define the forward transformation for the geometric offsets
+var('Dx','Dz')
+To=matrix([[ 1, 0, 0, -Dx],
+           [ 0, 1, 0,  0 ],
+           [ 0, 0, 1, -Dz],
+           [ 0, 0, 0,  1 ]])
+display(Math(rf'T_o =~'+latex(To)))
+----
+
+
++*Out[13]:*+
+----<IPython.core.display.Math object>----
+
+
++*In[14]:*+
+[source, ipython3]
+----
+# calculate the forward transformation matrix
+qAp=Ra*To*Rb
+display(Math(rf'^QA_P =~~'+latex(Ra)+rf'\cdot'+latex(To)+rf'\cdot'+latex(Rb)))
+display(Math(rf'^QA_P =~~'+latex(qAp)))
+----
+
+
++*Out[14]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+
++*In[15]:*+
+[source, ipython3]
+----
+# calculate the forward kinematic
+Q_out=qAp*P_
+display(Math(rf'Q =~'+latex(Q_)+rf'=~^QA_P \cdot P'))
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(qAp)+rf'\cdot'+latex(P_)))
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(Q_out)))
+----
+
+
++*Out[15]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+....
+    case 1: // ========================= TCP kinematics FORWARD 
+        px          = j[0];
+        py          = j[1];
+        pz          = j[2];
+
+        pos->tran.x = cb*px + pz*sb - dx;
+
+        pos->tran.y = -cb*pz*sa + px*sa*sb + ca*py + dz*sa;
+
+        pos->tran.z = ca*cb*pz - ca*px*sb - ca*dz + sa*py;
+
+        pos->a      = j[3];
+        pos->b      = j[4];
+
+        break;
+....
+
+== Inverse transformation
+
+For the inverse transformation we are moving in the opposite direction
+and need to reverse the vector translation:
+
+
++*In[16]:*+
+[source, ipython3]
+----
+# define the inverse transformation for the geometric offsets
+Tio=matrix([[ 1, 0, 0,  Dx],
+            [ 0, 1, 0,  0 ],
+            [ 0, 0, 1,  Dz],
+            [ 0, 0, 0,  1 ]])
+display(Math(rf'T_io =~'+latex(Tio)))
+----
+
+
++*Out[16]:*+
+----<IPython.core.display.Math object>----
+
+
++*In[17]:*+
+[source, ipython3]
+----
+# calculate the inverse transformation matrix
+pAq=Rb.transpose()*Tio*Ra.transpose()
+display(Math(rf'^PA_Q =~~'+latex(Rb.transpose())+rf'\cdot'+latex(Tio)+rf'\cdot'+latex(Ra.transpose())))
+display(Math(rf'^PA_Q =~~'+latex(pAq)))
+----
+
+
++*Out[17]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+To derive the joint position latexmath:[$P$] we then multiply the
+coordinate position vector latexmath:[$Q$] from the right:
+
+
++*In[18]:*+
+[source, ipython3]
+----
+# calculate the inverse kinematic
+P_out=pAq*Q_
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(pAq)+rf'\cdot'+latex(Q_)))
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(P_out)))
+----
+
+
++*Out[18]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+....
+    case 1: // ========================= TCP kinematics INVERSE 
+        qx   = pos->tran.x;
+        qy   = pos->tran.y;
+        qz   = pos->tran.z;
+
+        j[0] =   -ca*qz*sb + qy*sa*sb + cb*dx + cb*qx - dz*sb;
+
+        j[1] =   ca*qy+ qz*sa;
+
+        j[2] =   ca*cb*qz - cb*qy*sa + cb*dz + dx*sb + qx*sb;
+
+        j[3] = pos->a;
+        j[4] = pos->b;
+        break;
+....
+
+Testing in LinuxCNC shows a working TCP kinematic for rotations of
+joints A and B and the machine reference point has now shifted from the
+rotation point of the rotary assembly to the face center of the rotary
+A.
+
+
++*In[19]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/aob_gui_v1.png",
+              height=300, width=300))
+----
+
+
++*Out[19]:*+
+----
+![png](output_50_0.png)
+----
+
+== Shifting the reference point back to the rotation point
+
+For the purpose of this example let’s say we would like the machine
+reference to remain in the rotation point.
+
+== Forward kinematic
+
+We set latexmath:[$P=(Px,Py,Pz)=(0,0,0)$] and
+latexmath:[$\theta_a = \theta_b = 0$] which gives
+latexmath:[$Sa=Sb=0,~ Ca=Cb=1$] With these input values our current
+forward kinematic
+
+
++*In[20]:*+
+[source, ipython3]
+----
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(Q_out)))
+----
+
+
++*Out[20]:*+
+----<IPython.core.display.Math object>----
+
+results in latexmath:[$Q(-Dx,0,-Dz)$] Which is the reason our machine
+reference point has been moved to the face center of the rotary A. So in
+order to move the machine reference back to the rotation-point of the
+rotary assembly we need to add the offset values latexmath:[$(Dx,Dz)$]
+to the result of our forward kinematic which we can do in the form of a
+vector translation
+
+
++*In[21]:*+
+[source, ipython3]
+----
+display(Math(rf'T_io =~'+latex(Tio)))
+----
+
+
++*Out[21]:*+
+----<IPython.core.display.Math object>----
+
+that is multiplied with our forward transformation matrix from the left.
+
+
++*In[22]:*+
+[source, ipython3]
+----
+# calculate the forward transformation matrix
+qAp=Tio*Ra*To*Rb
+display(Math(rf'^QA_P =~~'+latex(Tio)+rf'\cdot'+latex(Ra)+rf'\cdot'+latex(To)+rf'\cdot'+latex(Rb)))
+display(Math(rf'^QA_P =~~'+latex(qAp)))
+----
+
+
++*Out[22]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+
++*In[23]:*+
+[source, ipython3]
+----
+# calculate the forward kinematic
+Q_out=qAp*P_
+display(Math(rf'Q =~'+latex(Q_)+rf'=~^QA_P \cdot P'))
+display(Math(rf'Q =~'+latex(Q_)+rf'='+latex(qAp)+rf'\cdot'+latex(P_)))
+display(Math(rf'Q =~'+latex(Q_)+latex(Q_out)))
+----
+
+
++*Out[23]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+....
+    case 1: // ========================= TCP kinematics FORWARD 
+        px          = j[0];
+        py          = j[1];
+        pz          = j[2];
+
+        pos->tran.x = cb*px + pz*sb;
+
+        pos->tran.y = -cb*pz*sa + px*sa*sb + ca*py + dz*sa;
+
+        pos->tran.z = ca*cb*pz - ca*px*sb - ca*dz + sa*py
+                      + dz;
+
+        pos->a      = j[3];
+        pos->b      = j[4];
+
+        break;
+....
+
+== Inverse transformation
+
+In the inverse transformation
+
+we have to subtract the offset values latexmath:[$Dx,Dz$] from the input
+values latexmath:[$Q$]:
+
+
++*In[24]:*+
+[source, ipython3]
+----
+Q_in=matrix([[Qx-Dx],
+             [Qy],
+             [Qz-Dz],
+             [1]])
+display(Math(rf'Q =~'+latex(Q_in)))
+----
+
+
++*Out[24]:*+
+----<IPython.core.display.Math object>----
+
+This is essentially the same as multiplying a translation vector to
+right side of our transformation matrix. To keep the math more readable
+we choose to subtract the values directly from the input.
+
+
++*In[25]:*+
+[source, ipython3]
+----
+# nothing has changed in the inverse transformation matrix
+display(Math(rf'^PA_Q =~~'+latex(pAq)))
+----
+
+
++*Out[25]:*+
+----<IPython.core.display.Math object>----
+
+
++*In[26]:*+
+[source, ipython3]
+----
+# calculate the inverse kinematic
+P_out=pAq*Q_in
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(pAq)+rf'\cdot'+latex(Q_in)))
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(P_out)))
+----
+
+
++*Out[26]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+Note that in the kinematic component latexmath:[$Dx$] is subtracted from
+the coordinate value _pos->tran.x_ in the line __qx = pos->tran.x -
+dx;__ and latexmath:[$Dz$] is subtracted from the coordinate value
+_pos->tran.z_ in the line _qz = pos->tran.z - dz;_
+
+Also note that latexmath:[$~(Dz-Qz) = -(Qz-Dz)$]
+
+'''''
+
+....
+    case 1: // ========================= TCP kinematics INVERSE 
+        qx   = pos->tran.x - dx;
+        qy   = pos->tran.y;
+        qz   = pos->tran.z - dz;
+
+        j[0] =   -ca*qz*sb + qy*sa*sb + cb*dx + cb*qx - dz*sb;
+
+        j[1] =   ca*qy+ qz*sa;
+
+        j[2] =   ca*cb*qz - cb*qy*sa + cb*dz + dx*sb + qx*sb;
+
+        j[3] = pos->a;
+        j[4] = pos->b;
+        break;
+....
+
+Testing in LinuxCNC shows the machine reference point has now been
+shifted back to rotation point of the rotary assembly.
+
+
++*In[27]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/aob_gui_v2.png", 
+              height=300, width=300))
+----
+
+
++*Out[27]:*+
+----
+![png](output_70_0.png)
+----
+
+== Tool length offset (TLO)
+
+Tool-length compensation is applied automatically in LinuxCNC by
+subtracting the tool-length value _Dt_ stored in the tool table from the
+the z-axis coordinate position while the joint position value remains
+unchanged. In it’s current form our forward kinematic model assumes that
+the joint position latexmath:[$P$] is identical to the tool position and
+uses the joint position value latexmath:[$P(Px,Py,Pz)$] to calculate the
+coordinate value latexmath:[$Q(Qx,Qy,Qz)$]. Hence our kinematic model
+does not see a tool position change when TLO is activated by G43.
+
+=== Forward kinematics
+
+To illustrate the situation we assume that the machine coordinate system
+origin (ie G53 X0Y0Z0) coincides with the rotation point of our rotary
+assembly. Further assuming that a tool could be positioned in this
+location we would expect that without any tool-length compensation (G49)
+a tool positioned here (G0 X0Y0Z0) would be unaffected by any rotation
+of either A or B and that is indeed the case:
+
+
++*In[28]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/offsets_tool_1.png",
+              height=300, width=300))
+----
+
+
++*Out[28]:*+
+----
+![png](output_72_0.png)
+----
+
+Let us consider this with our forward kinematic:
+
+
++*In[29]:*+
+[source, ipython3]
+----
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(Q_out)))
+----
+
+
++*Out[29]:*+
+----<IPython.core.display.Math object>----
+
+It is easy to see that for latexmath:[$Dx=Dz=0$] and
+latexmath:[$P(0,0,0)$] the result is indeed latexmath:[$Q(0,0,0)$] and
+this is what we expected.
+
+However if we apply tool-length compensation (ie G43) and we move the
+tool to G0 X0Y0Z0 so the tool center point (TCP) is again positioned at
+the rotation-point we see that the input to our forward kinematic (ie
+the joint position) is not at latexmath:[$P(0,0,0)$] anymore:
+
+
++*In[30]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/offsets_tool_2.png",
+              height=300, width=300))
+----
+
+
++*Out[30]:*+
+----
+![png](output_77_0.png)
+----
+
+Due to the way TLO is handled by LinuxCNC our joint-position is now
+_P(0,0,Dt)_ while the DRO reads _Z: 0.000_. To solve this problem we
+need to subtract the tool-offset value _Dt_ from the z joint position
+before feeding it into the forward kinematic. In this way our
+joint-position becomes latexmath:[$P(0,0,0)$] which will then give us
+the desired result of latexmath:[$Q(0,0,0)$].
+
+
++*In[31]:*+
+[source, ipython3]
+----
+var('Dt')
+P_in=matrix([[Px],
+             [Py],
+             [Pz-Dt],
+             [1]])
+display(Math(rf'P =~'+latex(P_in)))
+----
+
+
++*Out[31]:*+
+----<IPython.core.display.Math object>----
+
+Now however there is a new problem in that the DRO in LinuxCNC will show
+a z-axis position value equivalent to _-Dt_.
+
+
++*In[32]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/offsets_tool_3.png",
+              height=300, width=300))
+----
+
+
++*Out[32]:*+
+----
+![png](output_81_0.png)
+----
+
+This is because LinuxCNC automatically subtracts the TLO value from the
+value of _pos->tran.z_ which is the result of our forward kinematic.
+This can be fixed by adding _Dt_ back to the result of our forward
+kinematic calculation which we can do by creating a vector translation:
+
+
++*In[33]:*+
+[source, ipython3]
+----
+Tt=matrix([[ 1, 0, 0, 0],
+           [ 0, 1, 0, 0],
+           [ 0, 0, 1, Dt],
+           [ 0, 0, 0, 1 ]])
+
+display(Math(rf'Tt=~'+latex(Tt)))
+
+
+----
+
+
++*Out[33]:*+
+----<IPython.core.display.Math object>----
+
+and multiply that to the left of our transformation matrix:
+
+
++*In[34]:*+
+[source, ipython3]
+----
+# calculate the forward transformation matrix
+qAp=Tt*Tio*Ra*To*Rb
+display(Math(rf'^QA_P =~~'+latex(Tt)+rf'\cdot'+latex(Tio)+rf'\cdot'+latex(Ra)+rf'\cdot'+latex(To)+rf'\cdot'+latex(Rb)))
+display(Math(rf'^QA_P =~~'+latex(qAp)))
+----
+
+
++*Out[34]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+
++*In[35]:*+
+[source, ipython3]
+----
+# calculate forward kinematic
+Q_out=qAp*P_in
+display(Math(rf'Q =~'+latex(Q_)+rf'=~^QA_P \cdot P'))
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(qAp)+rf'\cdot'+latex(P_in)))
+display(Math(rf'Q =~'+latex(Q_out)))
+----
+
+
++*Out[35]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+Note that in the kinematic component latexmath:[$Dt$] is subtracted from
+the joint value _j[2]_ in the line _pz = j[2]- dt;_
+
+....
+    case 1: // ========================= TCP kinematics FORWARD 
+        px          = j[0];
+        py          = j[1];
+        pz          = j[2]- dt;
+
+        pos->tran.x = cb*px + pz*sb;
+
+        pos->tran.y = -cb*pz*sa + px*sa*sb + ca*py + dz*sa;
+
+        pos->tran.z = ca*cb*pz - ca*px*sb - ca*dz + sa*py
+                      + dz + dt;
+
+        pos->a      = j[3];
+        pos->b      = j[4];
+
+        break;
+....
+
+== Inverse transformation
+
+For the inverse transformation to match the new forward transformation
+we need to subtract latexmath:[$Dt$] from the coordinate position
+latexmath:[$Q$] and add it back to the result which we do by multiplying
+the translation by the vector latexmath:[$Dt$] from the left:
+
+
+
+
++*In[36]:*+
+[source, ipython3]
+----
+Q_in=matrix([[Qx-Dx],
+             [Qy],
+             [Qz-Dz-Dt],
+             [1]])
+display(Math(rf'Q =~'+latex(Q_in)))
+----
+
+
++*Out[36]:*+
+----<IPython.core.display.Math object>----
+
+
++*In[37]:*+
+[source, ipython3]
+----
+# calculate the inverse transformation matrix
+pAq=Tt*Rb.transpose()*Tio*Ra.transpose()
+display(Math(rf'^PA_Q =~~'+latex(Tt)+rf'\cdot'+latex(Rb.transpose())+rf'\cdot'+latex(Tio)+rf'\cdot'+latex(Ra.transpose())))
+display(Math(rf'^PA_Q =~~'+latex(pAq)))
+----
+
+
++*Out[37]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object>----
+
+
++*In[38]:*+
+[source, ipython3]
+----
+P_out=pAq*Q_in
+display(Math(rf'P =~'+latex(P_)+rf'=~^PA_Q \cdot Q'))
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(pAq)+rf'\cdot'+latex(Q_in)))
+display(Math(rf'P =~'+latex(P_out)))
+----
+
+
++*Out[38]:*+
+----<IPython.core.display.Math object><IPython.core.display.Math object><IPython.core.display.Math object>----
+
+'''''
+
+Note that in the kinematic component latexmath:[$Dt$] is subtracted from
+the coordinate value _pos->tran.z_ in the line _qz = pos->tran.z - dz -
+dt;_
+
+....
+    case 1: // ========================= TCP kinematics INVERSE 
+        qx   = pos->tran.x - dx;
+        qy   = pos->tran.y;
+        qz   = pos->tran.z - dz - dt;
+
+        j[0] =   -ca*qz*sb + qy*sa*sb + cb*dx + cb*qx - dz*sb;
+
+        j[1] =   ca*qy+ qz*sa;
+
+        j[2] =   ca*cb*qz - cb*qy*sa + cb*dz + dx*sb + qx*sb
+                 + dt;
+
+        j[3] = pos->a;
+        j[4] = pos->b;
+        break;
+....
+
+Now everything looks correct in the DRO.
+
+
++*In[40]:*+
+[source, ipython3]
+----
+display(Image(filename="Images/offsets_tool_4.png",
+              height=300, width=300))
+----
+
+
++*Out[40]:*+
+----
+![png](output_99_0.png)
+----
+
+If our machine is setup so that the machine reference point coincides
+with the rotation point of our rotary-assembly then our forward
+kinematic is complete. Otherwise one more step is necessary to derive a
+correct kinematic model.
+
+== Position offset of the rotary assembly to the machine reference point
+
+Up to this point we have assumed that the machine reference point
+coincides with the rotation point of our rotary-assembly or in case of
+applied geometric offsets latexmath:[$(Dx, Dz)$] maybe the center of the
+face of our secondary rotary table A. For such a case our forward
+kinematic is complete. However, if the machine at hand is setup in a way
+where there is an offset between the machine reference point and the
+rotary-assembly then this will need to be taken into account in the
+kinematic model. What does such an offset mean for our forward
+kinematic?
+
+=== Forward kinematic
+
+Let us assume that we have a setup with no TLO (latexmath:[$dt=0$]), no
+geometric offset (latexmath:[$Dz=Dx=0$]) and no offset of the
+rotation-point. A tool positioned at the rotation-point would have a
+joint-position of latexmath:[$P(0,0,0)$] and that would give the
+expected resulting coordinate position of latexmath:[$Q(0,0,0)$]. If we
+now assume that the rotation-point of our rotary-assembly is offset from
+the machine reference point by latexmath:[$(rp_x,rp_y,rp_z)$] then our
+joint-position would be equal to the offset
+latexmath:[$P(rp_x,rp_y,rp_z)$] which would clearly not give us the
+required result of Q(0,0,0). So we need to subtract the offset
+latexmath:[$(rp_x,rp_y,rp_z)$] from the joint-position
+latexmath:[$P=(Px-rp_x, Py-rp_y, Pz-rp_z)$] or in other words we need to
+translate the joint-position vector in the opposite direction along the
+offset vector.
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+var('Drpx','Drpy','Drpz')
+P_in=matrix([[Px-Drpx],
+             [Py-Drpy],
+             [Pz-Drpz-Dt],
+             [1]])
+
+display(Math(rf'P =~'+latex(P_in)))
+
+
+----
+
+However some more consideration is needed for now a joint position of
+latexmath:[$P(rp_x,rp_y,rp_z)$] will result in a coordinate position of
+latexmath:[$Q(0,0,0)$] which is of course not the value we can hand back
+to LinuxCNC because if the rotation point is offset from machine zero
+then the coordinate position would be latexmath:[$Q(rp_x,rp_y,rp_z)$].
+So to be consistent we need to add the offset values back to the results
+of our calculations which we do again by multiplying a vector
+translation to the left of our forward kinematic:
+
+
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+Trp=matrix([[ 1, 0, 0, Drpx],
+            [ 0, 1, 0, Drpy],
+            [ 0, 0, 1, Drpz],
+            [ 0, 0, 0,  1  ]])
+display(Math(rf'Trp =~'+latex(Trp)))
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+# calculate the forward transformation matrix
+qAp=Trp*Tt*Tio*Ra*To*Rb
+display(Math(rf'^QA_P =~~'+latex(Tt)+rf'\cdot'+latex(Tio)+rf'\cdot'+latex(Ra)+rf'\cdot'+latex(To)+rf'\cdot'+latex(Rb)))
+display(Math(rf'^QA_P =~~'+latex(qAp)))
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+Q_out=qAp*P_in
+display(Math(rf'Q =~'+latex(Q_)+rf'=~ ^QA_P \cdot P'))
+display(Math(rf'Q =~'+latex(Q_)+rf'=~'+latex(qAp)+rf'\cdot'+latex(P_in)))
+display(Math(rf'Q =~'+latex(Q_out)))
+----
+
+'''''
+
+Note that in the kinematic component latexmath:[$Drp(x,y,z)$] is named
+*(x,y,z)_rot_point* and subtracted from the respective joint values in
+the lines _ px = j[0] - x_rot_point; py = j[1] - y_rot_point; pz = j[2]
+- z_rot_point - dt;_
+
+....
+    case 1: // ========================= TCP kinematics FORWARD 
+        px          = j[0] - x_rot_point;
+        py          = j[1] - y_rot_point;
+        pz          = j[2] - z_rot_point - dt;
+
+        pos->tran.x =   cb*px + sb*pz
+                      + x_rot_point;
+
+        pos->tran.y =   sa*sb*px + ca*py - cb*sa*pz + sa*dz
+                      + y_rot_point;
+
+        pos->tran.z = - ca*sb*px + sa*py + ca*cb*pz - ca*dz
+                      + z_rot_point + dz + dt;
+
+        pos->a      = j[3];
+        pos->b      = j[4];
+        pos->c      = j[5];
+        break;
+....
+
+== Inverse transformation
+
+For the inverse transformation to match the new forward transformation
+we need mirror the modifications in the forward kinematics. That means
+to subtract latexmath:[$Drp(x,y,z)$] from the coordinate position
+latexmath:[$Q$]
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+Q_in=matrix([[Qx-Drpx-Dx],
+             [Qy-Drpy],
+             [Qz-Drpz-Dz],
+             [1]])
+display(Math(rf'Q =~'+latex(Q_in)))
+----
+
+and add it back to the result which we do by multiplying the translation
+vector latexmath:[$Drp(x,y,z)$] to the inverse transformation from the
+left:
+
+
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+# calculate the inverse transformation matrix
+pAq=Trp*Tt*Rb.transpose()*Tio*Ra.transpose()
+display(Math(rf'^PA_Q =~~'+latex(Trp)+rf'\cdot'+latex(Tt)+rf'\cdot'+latex(Rb.transpose())+rf'\cdot'+latex(Tio)+rf'\cdot'+latex(Ra.transpose())))
+display(Math(rf'^PA_Q =~~'+latex(pAq)))
+----
+
+
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+P_out=pAq*Q_in
+display(Math(rf'P =~'+latex(P_)+rf'=~'+latex(pAq)+rf'\cdot'+latex(Q_in)))
+display(Math(rf'P =~'+latex(P_out)))
+----
+
+'''''
+
+Note that in the kinematic component latexmath:[$Drp(x,y,z)$] is named
+*(x,y,z)_rot_point* and subtracted from the respective coordinate values
+in the lines _ qx = pos->tran.x - x_rot_point - dx; qy = pos->tran.y -
+y_rot_point; qz = pos->tran.z - z_rot_point - dz - dt;_
+
+....
+    case 1: // ========================= TCP kinematics INVERSE ======================
+        qx   = pos->tran.x - x_rot_point - dx;
+        qy   = pos->tran.y - y_rot_point;
+        qz   = pos->tran.z - z_rot_point - dz - dt;
+
+        j[0] =   cb*qx + sa*sb*qy - ca*sb*qz + cb*dx - sb*dz
+               + x_rot_point;
+
+        j[1] =   ca*qy + sa*qz
+               + y_rot_point;
+
+        j[2] =   sb*qx - sa*cb*qy + ca*cb*qz + sb*dx + cb*dz
+               + z_rot_point + dt;
+
+        j[3] = pos->a;
+        j[4] = pos->b;
+        break;
+....
+
+This completes the kinematic model.
